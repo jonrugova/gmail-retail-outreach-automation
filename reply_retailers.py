@@ -25,7 +25,7 @@ SHEET_NAME = "Retail Outreach"
 
 # True = finds threads but sends NOTHING.
 # False = actually sends emails.
-DRY_RUN = False
+DRY_RUN = True
 
 # Limits how many unsent contacts are processed per run,
 # including dry runs. This prevents Gmail API quota spikes.

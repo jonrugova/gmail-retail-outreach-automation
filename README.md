@@ -55,56 +55,108 @@ The project includes several safeguards for production use:
 
 ## Setup
 
-Create a virtual environment:
+### 1. Download the project
+
+With Git installed, run:
 
 ```bash
-python3 -m venv .venv
+git clone https://github.com/jonrugova/gmail-retail-outreach-automation.git
+cd gmail-retail-outreach-automation
+```
+
+Alternatively, select **Code → Download ZIP** on GitHub, extract the ZIP, and open a terminal in the extracted project folder.
+
+Run all remaining commands from the project folder so the script can find its credentials, tracker, and log files.
+
+### 2. Set up Python and dependencies
+
+The project was tested locally with **Python 3.13 on an Intel Mac**. Python 3.13 is recommended to reproduce that setup. The pinned `cryptography` version in `requirements.txt` is retained from that working installation.
+
+On macOS or Linux with Python 3.13 installed:
+
+```bash
+python3.13 -m venv .venv
 source .venv/bin/activate
+python --version
+python -m pip install -r requirements.txt
 ```
 
-Install dependencies:
+On Windows with Python 3.13 installed:
 
-```bash
-pip install -r requirements.txt
+```powershell
+py -3.13 -m venv .venv
+.venv\Scripts\Activate.ps1
+python --version
+python -m pip install -r requirements.txt
 ```
 
-Create a Google Cloud OAuth Desktop application with Gmail API access and save the downloaded OAuth credentials as:
+Confirm that `python --version` reports Python 3.13 before continuing.
+
+### 3. Configure Gmail OAuth
+
+Enable the Gmail API in a Google Cloud project, configure its OAuth consent screen, and create an OAuth client with application type **Desktop app**. If the app is in testing mode, add the Gmail account you intend to use as a test user.
+
+Download the OAuth client credentials and save them in the project folder as:
 
 ```text
 credentials.json
 ```
 
-Prepare an Excel file named:
+The script requests the `gmail.modify` scope. On the first run, it opens a browser for authorization and saves `token.json` locally. Authorize the Gmail account containing the historical inquiries.
+
+For Google Cloud setup details, see the [official Gmail API Python quickstart](https://developers.google.com/workspace/gmail/api/quickstart/python).
+
+### 4. Prepare the Excel tracker
+
+Place an Excel file in the project folder named:
 
 ```text
 retail_outreach_tracker.xlsx
 ```
 
-with a worksheet named:
+Use a worksheet named `Retail Outreach` with column headers in the first row:
 
-```text
-Retail Outreach
-```
+| Email | Email Sent | Client Replied |
+| --- | --- | --- |
+| retailer@example.com | | |
 
-and columns including:
+The script requires `Email` and `Email Sent`. `Client Replied` is an optional column for manual tracking; the script does not update it.
 
-```text
-Email
-Email Sent
-Client Replied
-```
+Rows marked `Yes` under `Email Sent` are skipped. After a successful send, the script marks the row `Yes` and saves the workbook. Close the tracker in Excel before running the script so it can be saved.
 
-Start with:
+### 5. Customize the local campaign
+
+The repository includes generic example settings. Before using it for your own campaign, edit the **CONFIGURATION** section near the top of your local `reply_retailers.py`:
+
+| Setting | What to change |
+| --- | --- |
+| `EXCEL_FILE` / `SHEET_NAME` | Match your tracker filename and worksheet if you use different names. |
+| `OUR_EMAILS` | Replace `team@example.com` with your internal email addresses and aliases, using lowercase addresses. These help exclude internal messages when selecting an inbound message. |
+| `TEMPLATE` | Replace the sample partnership email with your campaign wording and signature. Keep the `{greeting}` placeholder for personalization. |
+| `MARKER_TEXT` | Use a distinctive sentence that appears exactly in `TEMPLATE`. The script searches sent messages in the selected thread for this text to detect prior campaign replies. Keep it unchanged when resuming the same campaign. |
+| `MAX_CONTACTS_PER_RUN` / `MAX_SEND_PER_RUN` | Adjust the batch limits if needed. Both currently default to 30. |
+
+`OUR_EMAILS` does not select the sending account. Emails are sent using the Gmail account authorized in step 3.
+
+Keep company-specific addresses and campaign wording local. Because `reply_retailers.py` is tracked by Git, its edits are not protected by `.gitignore`; do not commit private campaign settings to a public repository.
+
+### 6. Test, then enable sending
+
+The published script defaults to:
 
 ```python
 DRY_RUN = True
 ```
 
-Then run:
+Run:
 
 ```bash
 python reply_retailers.py
 ```
+
+A dry run finds candidate threads and writes results to `retail_reply_log.csv`, but sends no emails and does not update the tracker.
+
+Review the matched threads and subjects before sending. Once your local settings and matches are checked, change `DRY_RUN = False` in your local script and run the same command again.
 
 ## Privacy
 
